@@ -3,6 +3,7 @@
 #include <memory>
 #include "keyhook.hpp"
 #include "wsserver.hpp"
+#include "httpserver.hpp"
 #include "dock-panel.hpp"
 
 class KeyOverlayPlugin {
@@ -17,5 +18,6 @@ private:
 
     std::unique_ptr<KeyHook> keyHook_;
     std::unique_ptr<WsServer> wsServer_;
+    std::unique_ptr<HttpServer> httpServer_;
     std::unique_ptr<DockPanel> dockPanel_;
 };

@@ -1,47 +1,56 @@
 #include "dock-panel.hpp"
-#include <QWebEngineView>
+#include "wsserver.hpp"
 #include <QLineEdit>
 #include <QPushButton>
+#include <QLabel>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QWidget>
-#include <QUrl>
+#include <QApplication>
+#include <QClipboard>
 #include <obs-frontend-api.h>
 #include <obs-module.h>
 #include <util/config-file.h>
 
-DockPanel::DockPanel(QWidget* parent) : QDockWidget(parent) {
+DockPanel::DockPanel(WsServer* wsServer, QWidget* parent) : QDockWidget(parent), wsServer_(wsServer) {
     setObjectName("KeyOverlayDock");
-    setWindowTitle("KeyOverlay");
-    setMinimumSize(320, 480);
+    setWindowTitle("KeyOverlay Settings");
+    setMinimumSize(320, 200);
 
     auto* contentWidget = new QWidget(this);
     auto* mainLayout = new QVBoxLayout(contentWidget);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->setSpacing(0);
+    mainLayout->setContentsMargins(16, 16, 16, 16);
+    mainLayout->setSpacing(12);
 
-    // Toolbar layout
-    auto* toolbarLayout = new QHBoxLayout();
-    toolbarLayout->setContentsMargins(4, 4, 4, 4);
+    infoLabel_ = new QLabel("Add a Browser Source in OBS and paste this URL:", contentWidget);
+    infoLabel_->setWordWrap(true);
+    mainLayout->addWidget(infoLabel_);
 
     urlBar_ = new QLineEdit(contentWidget);
     urlBar_->setPlaceholderText("Enter overlay URL...");
-    
-    resetBtn_ = new QPushButton("Reset", contentWidget);
+    mainLayout->addWidget(urlBar_);
 
-    toolbarLayout->addWidget(urlBar_);
-    toolbarLayout->addWidget(resetBtn_);
+    auto* btnLayout = new QHBoxLayout();
+    copyBtn_ = new QPushButton("Copy URL", contentWidget);
+    resetBtn_ = new QPushButton("Reset to Default", contentWidget);
+    btnLayout->addWidget(copyBtn_);
+    btnLayout->addWidget(resetBtn_);
+    mainLayout->addLayout(btnLayout);
 
-    // Web view
-    webView_ = new QWebEngineView(contentWidget);
+    mainLayout->addStretch();
 
-    mainLayout->addLayout(toolbarLayout);
-    mainLayout->addWidget(webView_);
+    statusLabel_ = new QLabel("Connected clients: 0", contentWidget);
+    mainLayout->addWidget(statusLabel_);
 
     setWidget(contentWidget);
 
-    connect(urlBar_, &QLineEdit::returnPressed, this, &DockPanel::onUrlChanged);
+    connect(urlBar_, &QLineEdit::textChanged, this, &DockPanel::onUrlChanged);
     connect(resetBtn_, &QPushButton::clicked, this, &DockPanel::onResetUrl);
+    connect(copyBtn_, &QPushButton::clicked, this, &DockPanel::onCopyUrl);
+
+    statusTimer_ = new QTimer(this);
+    connect(statusTimer_, &QTimer::timeout, this, &DockPanel::updateStatus);
+    statusTimer_->start(2000);
 }
 
 DockPanel::~DockPanel() {
@@ -54,7 +63,7 @@ void DockPanel::init() {
     if (!savedUrl.isEmpty()) {
         loadUrl(savedUrl);
     } else {
-        loadUrl(getLocalUrl());
+        loadUrl("http://127.0.0.1:9000");
     }
 }
 
@@ -63,22 +72,24 @@ void DockPanel::onUrlChanged() {
     if (url.isEmpty()) return;
 
     saveUrl(url);
-    loadUrl(url);
     blog(LOG_INFO, "[KeyOverlay] UI URL changed to: %s", url.toUtf8().constData());
 }
 
 void DockPanel::onResetUrl() {
-    config_set_string(obs_frontend_get_global_config(), "KeyOverlay", "UIUrl", "");
-    QString localUrl = getLocalUrl();
-    loadUrl(localUrl);
-    blog(LOG_INFO, "[KeyOverlay] UI URL reset to local default");
+    config_set_string(obs_frontend_get_global_config(), "KeyOverlay", "UIUrl", "http://127.0.0.1:9000");
+    loadUrl("http://127.0.0.1:9000");
+    blog(LOG_INFO, "[KeyOverlay] UI URL reset to http://127.0.0.1:9000");
 }
 
-QString DockPanel::getLocalUrl() const {
-    char* pluginDataPath = obs_module_file("ui/index.html");
-    QString path = QString::fromUtf8(pluginDataPath);
-    bfree(pluginDataPath);
-    return QUrl::fromLocalFile(path).toString();
+void DockPanel::onCopyUrl() {
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setText(urlBar_->text());
+}
+
+void DockPanel::updateStatus() {
+    if (wsServer_) {
+        statusLabel_->setText(QString("Connected clients: %1").arg(wsServer_->clientCount()));
+    }
 }
 
 QString DockPanel::getSavedUrl() const {
@@ -94,6 +105,7 @@ void DockPanel::saveUrl(const QString& url) {
 }
 
 void DockPanel::loadUrl(const QString& url) {
+    bool wasBlocked = urlBar_->blockSignals(true);
     urlBar_->setText(url);
-    webView_->setUrl(QUrl(url));
+    urlBar_->blockSignals(wasBlocked);
 }

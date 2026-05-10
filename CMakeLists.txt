@@ -22,8 +22,8 @@ if(ENABLE_FRONTEND_API)
 endif()
 
 if(ENABLE_QT)
-  find_package(Qt6 COMPONENTS Widgets WebEngineWidgets REQUIRED)
-  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Qt6::Widgets Qt6::WebEngineWidgets)
+  find_package(Qt6 COMPONENTS Widgets REQUIRED)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Qt6::Widgets)
   set_target_properties(
     ${CMAKE_PROJECT_NAME}
     PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON
@@ -51,6 +51,7 @@ target_sources(
     src/keyoverlay-plugin.cpp
     src/keyhook.cpp
     src/wsserver.cpp
+    src/httpserver.cpp
     src/dock-panel.cpp
 )
 

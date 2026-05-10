@@ -9,6 +9,7 @@ KeyOverlayPlugin& KeyOverlayPlugin::getInstance() {
 bool KeyOverlayPlugin::init() {
     keyHook_ = std::make_unique<KeyHook>();
     wsServer_ = std::make_unique<WsServer>();
+    httpServer_ = std::make_unique<HttpServer>();
     
     keyHook_->start([this](const KeyHook::KeyEvent& event) {
         std::string json = "{\"type\":\"" + event.type + "\",\"keyCode\":" + 
@@ -24,7 +25,11 @@ bool KeyOverlayPlugin::init() {
         blog(LOG_ERROR, "[KeyOverlay] Failed to start WebSocket server");
     }
 
-    dockPanel_ = std::make_unique<DockPanel>();
+    if (!httpServer_->start(9000)) {
+        blog(LOG_ERROR, "[KeyOverlay] Failed to start HTTP server");
+    }
+
+    dockPanel_ = std::make_unique<DockPanel>(wsServer_.get());
     dockPanel_->init();
 
     return true;
@@ -38,6 +43,10 @@ void KeyOverlayPlugin::shutdown() {
     if (wsServer_) {
         wsServer_->stop();
         wsServer_.reset();
+    }
+    if (httpServer_) {
+        httpServer_->stop();
+        httpServer_.reset();
     }
     if (dockPanel_) {
         dockPanel_.reset();
