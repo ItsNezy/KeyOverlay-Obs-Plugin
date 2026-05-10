@@ -219,7 +219,7 @@ jobs:
         if: fromJSON(steps.check.outputs.validTag)
         uses: softprops/action-gh-release@v2
         with:
-          draft: true
+          draft: false
           prerelease: ${{ fromJSON(steps.check.outputs.prerelease) }}
           tag_name: ${{ steps.check.outputs.version }}
           name: ${{ needs.check-event.outputs.pluginName }} ${{ steps.check.outputs.version }}
