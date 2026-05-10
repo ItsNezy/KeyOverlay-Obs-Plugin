@@ -199,10 +199,7 @@ jobs:
           commit_hash="${GITHUB_SHA:0:9}"
 
           # Find the windows artifact folder and move zip/exe to root
-          candidates=(*-windows-x64-${commit_hash}/*.{zip,exe})
-          for candidate in "${candidates[@]}"; do
-            mv "${candidate}" "${root_dir}"
-          done
+          find . -mindepth 2 -type f \( -name "*.zip" -o -name "*.exe" \) -exec mv {} "${root_dir}" \;
 
       - name: Generate Checksums 🪪
         if: fromJSON(steps.check.outputs.validTag)
