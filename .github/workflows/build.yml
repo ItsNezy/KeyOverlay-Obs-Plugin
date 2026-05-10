@@ -104,11 +104,20 @@ jobs:
           config: ${{ needs.check-event.outputs.config }}
           package: ${{ needs.check-event.outputs.package }}
 
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Compile Installer
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer/keyoverlay-installer.iss
+
       - name: Upload Build Artifacts 📡
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-windows-x64-${{ needs.check-event.outputs.commitHash }}
-          path: ${{ github.workspace }}/release/${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-windows-x64*.*
+          path: |
+            ${{ github.workspace }}/release/${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-windows-x64*.*
+            ${{ github.workspace }}/installer/Output/keyoverlay-installer.exe
 
   create-release:
     name: Create Release 🛫
@@ -155,8 +164,8 @@ jobs:
           root_dir="$(pwd)"
           commit_hash="${GITHUB_SHA:0:9}"
 
-          # Find the windows artifact folder and move zip to root
-          candidates=(*-windows-x64-${commit_hash}/*.zip)
+          # Find the windows artifact folder and move zip/exe to root
+          candidates=(*-windows-x64-${commit_hash}/*.{zip,exe})
           for candidate in "${candidates[@]}"; do
             mv "${candidate}" "${root_dir}"
           done
@@ -168,13 +177,13 @@ jobs:
           if [[ "${RUNNER_DEBUG}" ]]; then set -x; fi
 
           echo "### Checksums" > ${{ github.workspace }}/CHECKSUMS.txt
-          for file in ${{ github.workspace }}/*.zip; do
+          for file in ${{ github.workspace }}/*.{zip,exe}; do
             echo "    ${file##*/}: $(sha256sum "${file}" | cut -d " " -f 1)" >> ${{ github.workspace }}/CHECKSUMS.txt
           done
 
       - name: Create Release 🛫
         if: fromJSON(steps.check.outputs.validTag)
-        uses: softprops/action-gh-release@9d7c94cfd0a1f3ed45544c887983e9fa900f0564
+        uses: softprops/action-gh-release@v2
         with:
           draft: true
           prerelease: ${{ fromJSON(steps.check.outputs.prerelease) }}
@@ -183,5 +192,6 @@ jobs:
           body_path: ${{ github.workspace }}/CHECKSUMS.txt
           files: |
             ${{ github.workspace }}/*.zip
+            ${{ github.workspace }}/*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

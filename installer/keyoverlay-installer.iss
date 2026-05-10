@@ -10,8 +10,8 @@ SolidCompression=yes
 PrivilegesRequiredOverridesAllowed=dialog
 
 [Files]
-Source: "..\build\keyoverlay.dll"; DestDir: "{app}\obs-plugins\64bit\"; Flags: ignoreversion
-Source: "..\data\*"; DestDir: "{app}\data\obs-plugins\keyoverlay\"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\build_x64\RelWithDebInfo\keyoverlay.dll"; DestDir: "{pf}\obs-studio\obs-plugins\64bit\"
+Source: "..\data\*"; DestDir: "{pf}\obs-studio\data\obs-plugins\keyoverlay\"; Flags: recursesubdirs
 
 [Code]
 procedure CurStepChanged(CurStep: TSetupStep);
