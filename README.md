@@ -26,9 +26,15 @@
 3. Restart OBS Studio.
 
 ### 🚀 Usage
-1. Open your browser and go to `http://127.0.0.1:9000`.
-2. Customize your overlay and click **📋 Copy OBS URL**.
-3. In OBS, add a **Browser** source and paste the URL.
+1. Open **OBS Studio**.
+2. Go to the **Docks** menu and enable **KeyOverlay**.
+3. Copy the URL from the dock and paste it into your web browser.
+4. Customize your layout, theme, and key positions in the editor.
+5. Click the **📋 Copy OBS URL** button.
+6. In OBS, add a new **Browser** source.
+7. Paste the copied URL into the source settings.
+8. Adjust the Width and Height (e.g., `1200` x `400`) to ensure the keyboard isn't cropped.
+9. Click OK and enjoy your new overlay!
 
 ---
 
@@ -48,9 +54,15 @@
 3. Restart OBS Studio.
 
 ### 🚀 Cara Pakai
-1. Buka browser, akses `http://127.0.0.1:9000`.
-2. Atur sesuka hati terus klik **📋 Copy OBS URL**.
-3. Di OBS, tambah source **Browser** baru terus paste URL-nya.
+1. Buka **OBS Studio**.
+2. Pergi ke menu **Docks** dan centang **KeyOverlay**.
+3. Salin URL yang muncul di dock, terus buka di browser lu.
+4. Kustomisasi layout, tema, dan posisi tombol sesuka hati di editor browser.
+5. Klik tombol **📋 Copy OBS URL**.
+6. Di OBS, tambahkan source **Browser** baru.
+7. Paste URL yang tadi udah di-copy ke pengaturan source.
+8. Atur Lebar (Width) dan Tinggi (Height) (misal: `1200` x `400`) biar keyboard-nya nggak kepotong.
+9. Klik OK, dan selamat streaming! 🎉
 
 ---
 
