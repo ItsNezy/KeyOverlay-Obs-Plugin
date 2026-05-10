@@ -14,6 +14,19 @@ Source: "..\build_x64\RelWithDebInfo\keyoverlay.dll"; DestDir: "{pf}\obs-studio\
 Source: "..\data\*"; DestDir: "{pf}\obs-studio\data\obs-plugins\keyoverlay\"; Flags: recursesubdirs
 
 [Code]
+function InitializeSetup(): Boolean;
+var
+  OBSPath: string;
+begin
+  Result := True;
+  if not RegQueryStringValue(HKLM, 'SOFTWARE\OBS Studio', '', OBSPath) and
+     not RegQueryStringValue(HKCU, 'SOFTWARE\OBS Studio', '', OBSPath) then
+  begin
+    MsgBox('OBS Studio does not appear to be installed. Please install OBS Studio before installing KeyOverlay.', mbError, MB_OK);
+    Result := False;
+  end;
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then

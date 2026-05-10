@@ -2,9 +2,9 @@
 
 #include <QDockWidget>
 
+class QWebEngineView;
 class QLineEdit;
 class QPushButton;
-class QLabel;
 
 class DockPanel : public QDockWidget {
     Q_OBJECT
@@ -17,13 +17,11 @@ public:
 private slots:
     void onUrlChanged();
     void onResetUrl();
-    void onCopyUrl();
 
 private:
+    QWebEngineView* webView_ = nullptr;
     QLineEdit* urlBar_ = nullptr;
     QPushButton* resetBtn_ = nullptr;
-    QPushButton* copyBtn_ = nullptr;
-    QLabel* infoLabel_ = nullptr;
 
     QString getLocalUrl() const;
     QString getSavedUrl() const;
