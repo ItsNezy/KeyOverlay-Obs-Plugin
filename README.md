@@ -6,9 +6,9 @@
 
 Built with C++ and raw Winsock2 — zero external dependencies, maximum performance.
 
-[![Build](https://img.shields.io/github/actions/workflow/status/Rubim1/KeyOverlay-Obs-Plugin/build.yml?style=flat-square&logo=github)](https://github.com/Rubim1/KeyOverlay-Obs-Plugin/actions)
-[![Release](https://img.shields.io/github/v/release/Rubim1/KeyOverlay-Obs-Plugin?style=flat-square&color=8B5CF6)](https://github.com/Rubim1/KeyOverlay-Obs-Plugin/releases/latest)
-[![License](https://img.shields.io/github/license/Rubim1/KeyOverlay-Obs-Plugin?style=flat-square)](LICENSE)
+[![Build](https://img.shields.io/github/actions/workflow/status/ItsNezy/KeyOverlay-Obs-Plugin/build.yml?style=flat-square&logo=github)](https://github.com/ItsNezy/KeyOverlay-Obs-Plugin/actions)
+[![Release](https://img.shields.io/github/v/release/ItsNezy/KeyOverlay-Obs-Plugin?style=flat-square&color=8B5CF6)](https://github.com/ItsNezy/KeyOverlay-Obs-Plugin/releases/latest)
+[![License](https://img.shields.io/github/license/ItsNezy/KeyOverlay-Obs-Plugin?style=flat-square)](LICENSE)
 
 <!-- Replace with actual demo GIF -->
 <!-- ![KeyOverlay Demo](docs/demo.gif) -->
@@ -31,13 +31,13 @@ Built with C++ and raw Winsock2 — zero external dependencies, maximum performa
 ## 📥 Installation
 
 ### Option 1: Installer (Recommended)
-1. Go to the [**Releases**](https://github.com/Rubim1/KeyOverlay-Obs-Plugin/releases/latest) page
+1. Go to the [**Releases**](https://github.com/ItsNezy/KeyOverlay-Obs-Plugin/releases/latest) page
 2. Download `keyoverlay-installer.exe`
 3. Run the installer — it will auto-detect your OBS installation
 4. Restart OBS Studio
 
 ### Option 2: Manual
-1. Download the `.zip` from [Releases](https://github.com/Rubim1/KeyOverlay-Obs-Plugin/releases/latest)
+1. Download the `.zip` from [Releases](https://github.com/ItsNezy/KeyOverlay-Obs-Plugin/releases/latest)
 2. Extract `keyoverlay.dll` → `C:\Program Files\obs-studio\obs-plugins\64bit\`
 3. Extract `data\` folder → `C:\Program Files\obs-studio\data\obs-plugins\keyoverlay\`
 4. Restart OBS Studio

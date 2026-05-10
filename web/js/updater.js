@@ -5,7 +5,7 @@
    ═══════════════════════════════════════════════════════ */
 const Updater = {
     CURRENT_VERSION: '1.0.0',
-    REPO: 'Rubim1/KeyOverlay-Obs-Plugin',
+    REPO: 'ItsNezy/KeyOverlay-Obs-Plugin',
     CHECK_INTERVAL: 60 * 60 * 1000, // 1 hour
 
     init() {
