@@ -3,102 +3,185 @@ name: Build and Release KeyOverlay
 on:
   push:
     tags:
-      - 'v*'
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-beta*'
+      - '[0-9]+.[0-9]+.[0-9]+-rc*'
   workflow_dispatch:
 
-env:
-  OBS_VERSION: '30.1.2'
-  UWS_VERSION: 'v20.62.0'
-  QT_VERSION: '6.6.3'
-  PLUGIN_NAME: 'keyoverlay'
+permissions:
+  contents: write
 
 jobs:
-  build:
-    name: Build Windows x64
-    runs-on: windows-2022
-    
+  check-event:
+    name: Check GitHub Event Data 🔎
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      package: ${{ steps.setup.outputs.package }}
+      config: ${{ steps.setup.outputs.config }}
+      commitHash: ${{ steps.setup.outputs.commitHash }}
+      pluginName: ${{ steps.setup.outputs.pluginName }}
     steps:
-      - name: Checkout Code
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Event Data ☑️
+        id: setup
+        run: |
+          : Check Event Data ☑️
+          if [[ "${RUNNER_DEBUG}" ]]; then set -x; fi
+
+          case "${GITHUB_EVENT_NAME}" in
+            push)
+              config_data=('package:true' 'config:RelWithDebInfo')
+              if [[ ${GITHUB_REF_NAME} =~ [0-9]+.[0-9]+.[0-9]+(-(rc|beta).+)? ]]; then
+                config_data[1]='config:Release'
+              fi
+              ;;
+            workflow_dispatch)
+              config_data=('package:false' 'config:RelWithDebInfo')
+              ;;
+            *) ;;
+          esac
+
+          for config in "${config_data[@]}"; do
+            IFS=':' read -r key value <<< "${config}"
+            echo "${key}=${value}" >> $GITHUB_OUTPUT
+          done
+          echo "commitHash=${GITHUB_SHA:0:9}" >> $GITHUB_OUTPUT
+
+          plugin_name="$(grep 'name' buildspec.json | sed -E -e 's/^.+"name":[^"]+\"(.+)\",?$/\1/g' | head -1)"
+          plugin_display_name="$(grep 'displayName' buildspec.json | sed -E -e 's/^.+"displayName":[^"]+\"(.+)\",?$/\1/g' || echo "")"
+
+          if [[ "${plugin_display_name}" ]]; then
+            echo "pluginName=${plugin_display_name}" >> $GITHUB_OUTPUT
+          else
+            echo "pluginName=${plugin_name}" >> $GITHUB_OUTPUT
+          fi
+
+  windows-build:
+    name: Build for Windows 🪟
+    runs-on: windows-2022
+    needs: check-event
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout Repository 🛒
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
 
-      - name: Setup CMake
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '3.26'
-
-      - name: Cache OBS SDK
-        id: cache-obs
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/obs-sdk
-          key: obs-sdk-${{ env.OBS_VERSION }}-windows
-
-      - name: Download OBS Studio SDK
-        if: steps.cache-obs.outputs.cache-hit != 'true'
-        shell: powershell
+      - name: Set Up Environment 🔧
+        id: setup
         run: |
-          Invoke-WebRequest -Uri "https://github.com/obsproject/obs-studio/releases/download/${{ env.OBS_VERSION }}/obs-studio-${{ env.OBS_VERSION }}-windows-x64.zip" -OutFile obs-sdk.zip
-          Expand-Archive obs-sdk.zip -DestinationPath ${{ github.workspace }}/obs-sdk
-          Remove-Item obs-sdk.zip
+          # Set Up Environment 🔧
+          if ( $Env:RUNNER_DEBUG -ne $null ) {
+            Set-PSDebug -Trace 1
+          }
 
-      - name: Install Qt 6
-        uses: jurplel/install-qt-action@v3
+          $BuildSpec = Get-Content -Path buildspec.json -Raw | ConvertFrom-Json
+          $ProductName = $BuildSpec.name
+          $ProductVersion = $BuildSpec.version
+
+          "pluginName=${ProductName}" >> $env:GITHUB_OUTPUT
+          "pluginVersion=${ProductVersion}" >> $env:GITHUB_OUTPUT
+
+      - name: Build Plugin 🧱
+        uses: ./.github/actions/build-plugin
         with:
-          version: ${{ env.QT_VERSION }}
-          host: 'windows'
-          target: 'desktop'
-          arch: 'win64_msvc2019_64'
-          modules: 'qtwebengine qtwebchannel qtpositioning'
-          cache: true
+          target: x64
+          config: ${{ needs.check-event.outputs.config }}
 
-      - name: Cache uSockets
-        id: cache-usockets
-        uses: actions/cache@v4
+      - name: Package Plugin 📀
+        uses: ./.github/actions/package-plugin
         with:
-          path: |
-            ${{ github.workspace }}/uWebSockets
-            ${{ github.workspace }}/uSockets
-            ${{ github.workspace }}/uSockets.lib
-          key: usockets-${{ env.UWS_VERSION }}-windows
+          target: x64
+          config: ${{ needs.check-event.outputs.config }}
+          package: ${{ needs.check-event.outputs.package }}
 
-      - name: Setup MSVC Environment
-        if: steps.cache-usockets.outputs.cache-hit != 'true'
-        uses: ilammy/msvc-dev-cmd@v1
+      - name: Upload Build Artifacts 📡
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-windows-x64-${{ needs.check-event.outputs.commitHash }}
+          path: ${{ github.workspace }}/release/${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-windows-x64*.*
 
-      - name: Download and Build uWebSockets/uSockets
-        if: steps.cache-usockets.outputs.cache-hit != 'true'
-        shell: cmd
-        run: |
-          git clone --depth 1 --branch ${{ env.UWS_VERSION }} https://github.com/uNetworking/uWebSockets.git
-          git clone --depth 1 https://github.com/uNetworking/uSockets.git
-          cl /c /EHsc /O2 uSockets/src/*.c uSockets/src/eventing/*.c
-          lib /OUT:uSockets.lib *.obj
-
-      - name: Configure CMake
+  create-release:
+    name: Create Release 🛫
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    needs: [check-event, windows-build]
+    defaults:
+      run:
         shell: bash
+    steps:
+      - name: Check Release Tag ☑️
+        id: check
         run: |
-          cmake -B build -G "Visual Studio 17 2022" -A x64 \
-            -DCMAKE_PREFIX_PATH="${{ github.workspace }}/obs-sdk;${{ env.Qt6_DIR }}" \
-            -DUWS_INCLUDE_DIR="${{ github.workspace }}/uWebSockets/src" \
-            -DUSOCKETS_LIB="${{ github.workspace }}/uSockets.lib" \
-            -DCMAKE_BUILD_TYPE=Release
+          : Check Release Tag ☑️
+          if [[ "${RUNNER_DEBUG}" ]]; then set -x; fi
+          shopt -s extglob
 
-      - name: Build Plugin
-        run: cmake --build build --config Release
+          case "${GITHUB_REF_NAME}" in
+            +([0-9]).+([0-9]).+([0-9]) )
+              echo 'validTag=true' >> $GITHUB_OUTPUT
+              echo 'prerelease=false' >> $GITHUB_OUTPUT
+              echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+              ;;
+            +([0-9]).+([0-9]).+([0-9])-@(beta|rc)*([0-9]) )
+              echo 'validTag=true' >> $GITHUB_OUTPUT
+              echo 'prerelease=true' >> $GITHUB_OUTPUT
+              echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+              ;;
+            *) echo 'validTag=false' >> $GITHUB_OUTPUT ;;
+          esac
 
-      - name: Install Inno Setup
-        run: choco install innosetup --no-progress -y
+      - name: Download Build Artifacts 📥
+        if: fromJSON(steps.check.outputs.validTag)
+        uses: actions/download-artifact@v4
 
-      - name: Compile Installer
+      - name: Rename Files 🏷️
+        if: fromJSON(steps.check.outputs.validTag)
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer/keyoverlay-installer.iss
+          : Rename Files 🏷️
+          if [[ "${RUNNER_DEBUG}" ]]; then set -x; fi
+          shopt -s extglob
+          shopt -s nullglob
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+          root_dir="$(pwd)"
+          commit_hash="${GITHUB_SHA:0:9}"
+
+          # Find the windows artifact folder and move zip to root
+          candidates=(*-windows-x64-${commit_hash}/*.zip)
+          for candidate in "${candidates[@]}"; do
+            mv "${candidate}" "${root_dir}"
+          done
+
+      - name: Generate Checksums 🪪
+        if: fromJSON(steps.check.outputs.validTag)
+        run: |
+          : Generate Checksums 🪪
+          if [[ "${RUNNER_DEBUG}" ]]; then set -x; fi
+
+          echo "### Checksums" > ${{ github.workspace }}/CHECKSUMS.txt
+          for file in ${{ github.workspace }}/*.zip; do
+            echo "    ${file##*/}: $(sha256sum "${file}" | cut -d " " -f 1)" >> ${{ github.workspace }}/CHECKSUMS.txt
+          done
+
+      - name: Create Release 🛫
+        if: fromJSON(steps.check.outputs.validTag)
+        uses: softprops/action-gh-release@9d7c94cfd0a1f3ed45544c887983e9fa900f0564
         with:
-          files: installer/Output/keyoverlay-installer.exe
-          generate_release_notes: true
+          draft: true
+          prerelease: ${{ fromJSON(steps.check.outputs.prerelease) }}
+          tag_name: ${{ steps.check.outputs.version }}
+          name: ${{ needs.check-event.outputs.pluginName }} ${{ steps.check.outputs.version }}
+          body_path: ${{ github.workspace }}/CHECKSUMS.txt
+          files: |
+            ${{ github.workspace }}/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
