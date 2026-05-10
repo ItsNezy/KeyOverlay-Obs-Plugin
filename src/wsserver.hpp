@@ -5,15 +5,7 @@
 #include <atomic>
 #include <mutex>
 #include <vector>
-
-namespace uWS {
-    template <bool isSSL> struct TemplatedApp;
-    using App = TemplatedApp<false>;
-    struct Loop;
-    template <bool isSSL, bool isServer> struct WebSocket;
-}
-
-struct us_listen_socket_t;
+#include <winsock2.h>
 
 class WsServer {
 public:
@@ -27,14 +19,20 @@ public:
     bool isRunning() const;
 
 private:
+    struct Client {
+        SOCKET sock;
+        bool handshaked;
+        std::string buffer;
+    };
+
     void serverLoop(int port);
+    bool doHandshake(Client& client);
 
     std::thread serverThread_;
     std::atomic<bool> running_ = false;
-    std::atomic<int> clients_ = 0;
+    std::atomic<int> clientsCount_ = 0;
     
-    uWS::Loop* loop_ = nullptr;
-    us_listen_socket_t* listenSocket_ = nullptr;
+    SOCKET listenSocket_ = INVALID_SOCKET;
     std::mutex clientsMutex_;
-    std::vector<uWS::WebSocket<false, true>*> clientsList_;
+    std::vector<Client> clients_;
 };

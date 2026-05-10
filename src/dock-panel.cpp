@@ -10,6 +10,7 @@
 #include <QClipboard>
 #include <obs-frontend-api.h>
 #include <obs-module.h>
+#include <util/config-file.h>
 
 DockPanel::DockPanel(QWidget* parent) : QDockWidget(parent) {
     setObjectName("KeyOverlayDock");
@@ -49,7 +50,7 @@ DockPanel::~DockPanel() {
 }
 
 void DockPanel::init() {
-    obs_frontend_add_dock(this);
+    obs_frontend_add_dock_by_id("KeyOverlayDock", "KeyOverlay", this);
     
     QString savedUrl = getSavedUrl();
     if (!savedUrl.isEmpty()) {

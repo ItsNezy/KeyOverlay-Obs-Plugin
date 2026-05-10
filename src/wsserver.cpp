@@ -1,11 +1,21 @@
 #include "wsserver.hpp"
-#include <App.h>
 #include <obs-module.h>
+#include <ws2tcpip.h>
+#include <wincrypt.h>
+#include <regex>
 
-WsServer::WsServer() {}
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "advapi32.lib")
+#pragma comment(lib, "crypt32.lib")
+
+WsServer::WsServer() {
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
+}
 
 WsServer::~WsServer() {
     stop();
+    WSACleanup();
 }
 
 bool WsServer::start(int port) {
@@ -19,105 +29,207 @@ void WsServer::stop() {
     if (!running_) return;
 
     running_ = false;
-    if (loop_) {
-        // defer a callback to stop the loop from the thread it's running on
-        loop_->defer([this]() {
-            if (listenSocket_) {
-                us_listen_socket_close(0, listenSocket_);
-                listenSocket_ = nullptr;
-            }
-            std::lock_guard<std::mutex> lock(clientsMutex_);
-            for (auto* ws : clientsList_) {
-                ws->close();
-            }
-            clientsList_.clear();
-            clients_ = 0;
-        });
-    }
 
     if (serverThread_.joinable()) {
         serverThread_.join();
     }
+
+    std::lock_guard<std::mutex> lock(clientsMutex_);
+    if (listenSocket_ != INVALID_SOCKET) {
+        closesocket(listenSocket_);
+        listenSocket_ = INVALID_SOCKET;
+    }
+    for (auto& c : clients_) {
+        if (c.sock != INVALID_SOCKET) {
+            closesocket(c.sock);
+        }
+    }
+    clients_.clear();
+    clientsCount_ = 0;
 }
 
 void WsServer::broadcast(const std::string& json) {
-    if (!running_ || !loop_) return;
+    if (!running_) return;
     
-    // allocate a copy of the string to pass into the lambda
-    std::string* jsonCopy = new std::string(json);
-    
-    loop_->defer([this, jsonCopy]() {
-        std::lock_guard<std::mutex> lock(clientsMutex_);
-        for (auto* ws : clientsList_) {
-            ws->send(*jsonCopy, uWS::OpCode::TEXT);
+    std::string frame;
+    frame.push_back((char)0x81); // FIN + Text
+    if (json.size() <= 125) {
+        frame.push_back((char)json.size());
+    } else if (json.size() <= 65535) {
+        frame.push_back((char)126);
+        frame.push_back((char)((json.size() >> 8) & 0xFF));
+        frame.push_back((char)(json.size() & 0xFF));
+    } else {
+        return; // Too large for our simple server
+    }
+    frame += json;
+
+    std::lock_guard<std::mutex> lock(clientsMutex_);
+    for (auto& c : clients_) {
+        if (c.handshaked && c.sock != INVALID_SOCKET) {
+            send(c.sock, frame.c_str(), (int)frame.size(), 0);
         }
-        delete jsonCopy;
-    });
+    }
 }
 
 int WsServer::clientCount() const {
-    return clients_;
+    return clientsCount_;
 }
 
 bool WsServer::isRunning() const {
     return running_;
 }
 
-void WsServer::serverLoop(int port) {
-    // save the thread's loop instance
-    loop_ = uWS::Loop::get();
+bool WsServer::doHandshake(Client& client) {
+    std::string req = client.buffer;
+    
+    std::regex keyRegex("Sec-WebSocket-Key:\\s*(.*?)\r\n", std::regex_constants::icase);
+    std::smatch match;
+    if (!std::regex_search(req, match, keyRegex)) return false;
+    
+    std::string key = match[1].str();
+    
+    // Trim trailing whitespace or CR just in case
+    while (!key.empty() && (key.back() == '\r' || key.back() == ' ')) {
+        key.pop_back();
+    }
+    
+    std::string concat = key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    
+    HCRYPTPROV hProv = 0;
+    HCRYPTHASH hHash = 0;
+    std::vector<BYTE> hash(20);
+    
+    if (CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+        if (CryptCreateHash(hProv, CALG_SHA1, 0, 0, &hHash)) {
+            if (CryptHashData(hHash, (const BYTE*)concat.data(), (DWORD)concat.size(), 0)) {
+                DWORD hashLen = 20;
+                CryptGetHashParam(hHash, HP_HASHVAL, hash.data(), &hashLen, 0);
+            }
+            CryptDestroyHash(hHash);
+        }
+        CryptReleaseContext(hProv, 0);
+    }
+    
+    DWORD outLen = 0;
+    CryptBinaryToStringA(hash.data(), (DWORD)hash.size(), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &outLen);
+    std::string base64Hash(outLen, '\0');
+    CryptBinaryToStringA(hash.data(), (DWORD)hash.size(), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, &base64Hash[0], &outLen);
+    
+    // CryptBinaryToStringA includes the null terminator in outLen, so resize to drop it
+    if (!base64Hash.empty() && base64Hash.back() == '\0') {
+        base64Hash.pop_back();
+    }
+    
+    std::string res = "HTTP/1.1 101 Switching Protocols\r\n"
+                      "Upgrade: websocket\r\n"
+                      "Connection: Upgrade\r\n"
+                      "Sec-WebSocket-Accept: " + base64Hash + "\r\n\r\n";
+                      
+    send(client.sock, res.c_str(), (int)res.size(), 0);
+    return true;
+}
 
-    uWS::App().ws<int>("/*", {
-        .compression = uWS::DISABLED,
-        .maxPayloadLength = 16 * 1024,
-        .idleTimeout = 120,
-        .maxBackpressure = 1 * 1024 * 1024,
-        .closeOnBackpressureLimit = false,
-        .resetIdleTimeoutOnSend = false,
-        .sendPingsAutomatically = true,
+void WsServer::serverLoop(int port) {
+    listenSocket_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (listenSocket_ == INVALID_SOCKET) {
+        blog(LOG_ERROR, "[KeyOverlay] Failed to create socket");
+        running_ = false;
+        return;
+    }
+
+    sockaddr_in addr = {};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    if (bind(listenSocket_, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
+        blog(LOG_ERROR, "[KeyOverlay] Failed to bind to port %d", port);
+        closesocket(listenSocket_);
+        listenSocket_ = INVALID_SOCKET;
+        running_ = false;
+        return;
+    }
+
+    if (listen(listenSocket_, SOMAXCONN) == SOCKET_ERROR) {
+        blog(LOG_ERROR, "[KeyOverlay] Failed to listen");
+        closesocket(listenSocket_);
+        listenSocket_ = INVALID_SOCKET;
+        running_ = false;
+        return;
+    }
+
+    u_long mode = 1;
+    ioctlsocket(listenSocket_, FIONBIO, &mode);
+    
+    blog(LOG_INFO, "[KeyOverlay] WebSocket server running on ws://127.0.0.1:%d", port);
+
+    while (running_) {
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(listenSocket_, &readfds);
         
-        .upgrade = nullptr,
-        
-        .open = [this](auto* ws) {
-            std::lock_guard<std::mutex> lock(clientsMutex_);
-            clientsList_.push_back(ws);
-            clients_++;
-            blog(LOG_INFO, "[KeyOverlay] WebSocket client connected. Total: %d", clients_.load());
-        },
-        
-        .message = [](auto* ws, std::string_view message, uWS::OpCode opCode) {
-            // we don't expect messages from the overlay
-        },
-        
-        .drain = [](auto* ws) {
-            // check ws->getBufferedAmount() here
-        },
-        
-        .ping = [](auto* ws, std::string_view) {},
-        
-        .pong = [](auto* ws, std::string_view) {},
-        
-        .close = [this](auto* ws, int code, std::string_view message) {
-            std::lock_guard<std::mutex> lock(clientsMutex_);
-            auto it = std::find(clientsList_.begin(), clientsList_.end(), ws);
-            if (it != clientsList_.end()) {
-                clientsList_.erase(it);
-                clients_--;
-                blog(LOG_INFO, "[KeyOverlay] WebSocket client disconnected. Total: %d", clients_.load());
+        std::unique_lock<std::mutex> lock(clientsMutex_);
+        for (auto& c : clients_) {
+            if (c.sock != INVALID_SOCKET) {
+                FD_SET(c.sock, &readfds);
             }
         }
-    }).listen(port, [port, this](auto* listen_socket) {
-        if (listen_socket) {
-            listenSocket_ = listen_socket;
-            blog(LOG_INFO, "[KeyOverlay] WebSocket server running on ws://127.0.0.1:%d", port);
-        } else {
-            blog(LOG_ERROR, "[KeyOverlay] Failed to start WebSocket server on port %d. Is the port in use?", port);
-            running_ = false;
+        lock.unlock();
+
+        timeval tv = {0, 100000}; // 100ms
+        int ret = select(0, &readfds, NULL, NULL, &tv);
+        
+        if (ret > 0) {
+            lock.lock();
+            if (FD_ISSET(listenSocket_, &readfds)) {
+                SOCKET newClient = accept(listenSocket_, NULL, NULL);
+                if (newClient != INVALID_SOCKET) {
+                    u_long clientMode = 1;
+                    ioctlsocket(newClient, FIONBIO, &clientMode);
+                    clients_.push_back({newClient, false, ""});
+                }
+            }
+
+            for (auto it = clients_.begin(); it != clients_.end(); ) {
+                if (it->sock != INVALID_SOCKET && FD_ISSET(it->sock, &readfds)) {
+                    char buf[2048];
+                    int len = recv(it->sock, buf, sizeof(buf), 0);
+                    if (len <= 0) {
+                        closesocket(it->sock);
+                        it = clients_.erase(it);
+                        continue;
+                    }
+                    if (!it->handshaked) {
+                        it->buffer.append(buf, len);
+                        if (it->buffer.find("\r\n\r\n") != std::string::npos) {
+                            if (doHandshake(*it)) {
+                                it->handshaked = true;
+                                it->buffer.clear(); // free memory
+                                blog(LOG_INFO, "[KeyOverlay] WebSocket client connected");
+                            } else {
+                                closesocket(it->sock);
+                                it = clients_.erase(it);
+                                continue;
+                            }
+                        }
+                    } else {
+                        // ignore incoming websocket frames, just drain the buffer
+                        // typical browsers send PONGs or close frames, which we just read and drop
+                    }
+                }
+                ++it;
+            }
+            
+            int activeClients = 0;
+            for (auto& c : clients_) if (c.handshaked) activeClients++;
+            if (activeClients != clientsCount_) {
+                clientsCount_ = activeClients;
+                blog(LOG_INFO, "[KeyOverlay] WebSocket active clients: %d", clientsCount_.load());
+            }
+            lock.unlock();
         }
-    }).run();
+    }
     
-    // once loop ends
     blog(LOG_INFO, "[KeyOverlay] WebSocket server stopped");
-    loop_ = nullptr;
-    running_ = false;
 }
