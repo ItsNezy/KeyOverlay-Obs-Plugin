@@ -1,0 +1,39 @@
+:root {
+    --bg-color: transparent;
+    --key-bg: #2d2d2d;
+    --key-text: #ffffff;
+    --key-border: #1a1a1a;
+    --key-active: #3B82F6;
+    --key-active-text: #ffffff;
+    --font-family: 'Inter', sans-serif;
+    --scale: 1;
+    --anim-duration: 100ms;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    font-family: var(--font-family);
+    overflow: hidden;
+}
+
+/* Editor mode: dark bg so you can see the overlay */
+body.editor-mode {
+    background-color: #0f0f1a;
+}
+
+/* Overlay mode: fully transparent for OBS */
+body.overlay-mode {
+    background-color: transparent;
+}
+
+.hidden {
+    display: none !important;
+}
+
+* {
+    box-sizing: border-box;
+}

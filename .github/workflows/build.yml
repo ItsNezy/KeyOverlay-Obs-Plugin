@@ -1,0 +1,104 @@
+name: Build and Release KeyOverlay
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  OBS_VERSION: '30.1.2'
+  UWS_VERSION: 'v20.62.0'
+  QT_VERSION: '6.6.3'
+  PLUGIN_NAME: 'keyoverlay'
+
+jobs:
+  build:
+    name: Build Windows x64
+    runs-on: windows-2022
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.26'
+
+      - name: Cache OBS SDK
+        id: cache-obs
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/obs-sdk
+          key: obs-sdk-${{ env.OBS_VERSION }}-windows
+
+      - name: Download OBS Studio SDK
+        if: steps.cache-obs.outputs.cache-hit != 'true'
+        shell: powershell
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/obsproject/obs-studio/releases/download/${{ env.OBS_VERSION }}/obs-studio-${{ env.OBS_VERSION }}-windows-x64.zip" -OutFile obs-sdk.zip
+          Expand-Archive obs-sdk.zip -DestinationPath ${{ github.workspace }}/obs-sdk
+          Remove-Item obs-sdk.zip
+
+      - name: Install Qt 6
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
+          modules: 'qtwebengine qtwebchannel qtpositioning'
+          cache: true
+
+      - name: Cache uSockets
+        id: cache-usockets
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/uWebSockets
+            ${{ github.workspace }}/uSockets
+            ${{ github.workspace }}/uSockets.lib
+          key: usockets-${{ env.UWS_VERSION }}-windows
+
+      - name: Setup MSVC Environment
+        if: steps.cache-usockets.outputs.cache-hit != 'true'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Download and Build uWebSockets/uSockets
+        if: steps.cache-usockets.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          git clone --depth 1 --branch ${{ env.UWS_VERSION }} https://github.com/uNetworking/uWebSockets.git
+          git clone --depth 1 https://github.com/uNetworking/uSockets.git
+          cl /c /EHsc /O2 uSockets/src/*.c uSockets/src/eventing/*.c
+          lib /OUT:uSockets.lib *.obj
+
+      - name: Configure CMake
+        shell: bash
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A x64 \
+            -DCMAKE_PREFIX_PATH="${{ github.workspace }}/obs-sdk;${{ env.Qt6_DIR }}" \
+            -DUWS_INCLUDE_DIR="${{ github.workspace }}/uWebSockets/src" \
+            -DUSOCKETS_LIB="${{ github.workspace }}/uSockets.lib" \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Plugin
+        run: cmake --build build --config Release
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Compile Installer
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer/keyoverlay-installer.iss
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installer/Output/keyoverlay-installer.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

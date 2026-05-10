@@ -1,0 +1,226 @@
+PRODUCT REQUIREMENTS DOCUMENT
+KeyOverlay
+Web-Based Customizable Keyboard Overlay for OBS
+Versi
+1.0.0
+Status
+Draft
+Tech Stack
+HTML / CSS / JavaScript
+Platform
+OBS Browser Source
+1. Overview
+KeyOverlay adalah web-based keyboard overlay yang dirancang untuk digunakan sebagai Browser Source di OBS Studio. Tool ini memungkinkan streamer menampilkan visual keyboard real-time dengan tampilan yang fully customizable — mulai dari layout, warna, ukuran, hingga animasi keypress.
+Dua target user utama:
+Casual streamer — tinggal buka di browser, drag-and-drop lewat UI editor, langsung jalan di OBS.
+Power user / developer — bisa oprek CSS sendiri, export/import config JSON, atau bahkan extend fitur via custom script.
+2. Goals & Non-Goals
+Goals
+Keyboard overlay jalan sebagai Browser Source di OBS tanpa instalasi apapun.
+Customizable via GUI editor (no-code) untuk casual user.
+Customizable via CSS/JSON untuk power user.
+Ringan dan performa tinggi — HTML/CSS/JS murni, zero framework besar.
+Keypress terdeteksi real-time dengan visual feedback (highlight, animasi, dll).
+Support berbagai layout keyboard: QWERTY, AZERTY, custom.
+Config bisa disimpan dan di-share antar user (export/import JSON).
+Non-Goals
+Tidak ada backend server — semua client-side.
+Tidak support Linux native keylogging (browser limitation).
+Tidak ada cloud sync atau akun user.
+Tidak perlu support mobile atau touch input.
+3. User Stories
+Casual Streamer
+Sebagai streamer, saya ingin membuka URL di OBS Browser Source dan langsung lihat keyboard overlay tanpa setup ribet.
+Sebagai streamer, saya ingin ganti warna dan font via panel editor tanpa perlu tau CSS.
+Sebagai streamer, saya ingin pilih preset tema yang sudah jadi (dark, light, gaming, aesthetic, dsb).
+Sebagai streamer, saya ingin key yang ditekan langsung highlight dengan animasi smooth.
+Power User / Developer
+Sebagai developer, saya ingin inject custom CSS langsung ke overlay tanpa edit source code.
+Sebagai developer, saya ingin export konfigurasi ke JSON dan import lagi di browser lain.
+Sebagai developer, saya ingin definisikan layout keyboard custom (misal: 60%, TKL, numpad only).
+Sebagai developer, saya ingin set highlight color per-key group (modifier, alphanumeric, function keys, dll).
+4. Arsitektur Sistem
+Stack
+Frontend
+HTML5, CSS3 (Custom Properties), Vanilla JavaScript (ES6+)
+Input Detection
+KeyboardEvent API (browser-native, via OBS Browser Source)
+Storage
+localStorage — menyimpan config user secara lokal
+Distribusi
+Single HTML file — bisa dihosting di GitHub Pages, Netlify, dsb
+Cara Kerja di OBS
+User menambahkan Browser Source di OBS dengan URL dari overlay. OBS akan render halaman tersebut menggunakan Chromium engine — sehingga keyboard events bisa terdeteksi selama Browser Source dalam kondisi fokus (atau menggunakan OBS global key hook jika diperlukan).
+Flow sederhana:
+User buka URL overlay di browser untuk konfigurasi.
+Setelah puas, copy URL beserta query params config (atau gunakan localStorage) ke OBS Browser Source.
+OBS render overlay. Keypress terdeteksi dan divisualisasikan real-time.
+5. Feature Requirements
+5.1 Core Features (MVP)
+Fitur
+Deskripsi
+Prioritas
+Keyboard Renderer
+Render layout keyboard standar (QWERTY full, TKL, 60%) berbasis data JSON layout.
+P0
+Keypress Detection
+Detect keydown/keyup via KeyboardEvent. Highlight key saat ditekan, release saat lepas.
+P0
+Transparent Background
+Default background transparan agar menyatu dengan overlay OBS.
+P0
+Basic Customization
+Ganti warna key, warna highlight, warna text, ukuran keyboard via CSS variables.
+P0
+Preset Themes
+Min. 5 preset tema siap pakai: Dark, Light, Gaming Red, Pastel, Monochrome.
+P0
+Config Persistence
+Simpan config ke localStorage. Load otomatis saat halaman dibuka.
+P0
+Export / Import JSON
+Export config ke file .json. Import dari file .json.
+P1
+Custom CSS Injector
+Text area di editor untuk inject custom CSS langsung.
+P1
+Responsive Scale
+Keyboard bisa di-scale untuk fit berbagai resolusi OBS.
+P1
+5.2 Advanced Features (Post-MVP)
+Fitur
+Deskripsi
+Prioritas
+Custom Layout Builder
+UI drag-and-drop untuk buat layout keyboard sendiri.
+P2
+Per-Key Customization
+Klik key individual untuk set warna highlight spesifik.
+P2
+Key Animation Options
+Pilih animasi highlight: fade, bounce, scale, glow, ripple.
+P2
+WASD / Arrow Highlight Mode
+Mode khusus untuk highlight WASD atau arrow keys saja (gaming mode).
+P2
+Recently Pressed History
+Panel kecil yang tampilkan X key terakhir yang ditekan.
+P2
+KPS Counter
+Keys per second counter — opsional muncul di overlay.
+P2
+URL Param Config
+Config bisa dipass via URL query params untuk share mudah.
+P2
+6. UI & UX Spec
+6.1 Mode Overlay (OBS View)
+Background: transparent (rgba(0,0,0,0)).
+Keyboard container: center horizontal, posisi bisa dikonfigurasi (bottom, custom x/y).
+Key default: rounded rectangle, warna sesuai tema.
+Key pressed: warna berubah + transisi smooth (default 100ms ease).
+Tidak ada UI editor — clean, hanya keyboard.
+6.2 Mode Editor (Config View)
+Diakses dengan menambahkan ?editor=true ke URL, atau tombol khusus yang hilang saat di OBS.
+Panel kiri: preview keyboard live.
+Panel kanan: kontrol customization (color pickers, sliders, dropdowns).
+Tab: Themes | Layout | Keys | Advanced CSS | Export/Import.
+Tombol 'Copy OBS URL' — generate URL dengan config ter-encode.
+7. Data Model
+Config Schema (JSON)
+Berikut adalah struktur config yang disimpan di localStorage dan bisa di-export/import:
+{
+  "theme": "dark",
+  "layout": "full",
+  "scale": 1.0,
+  "position": { "x": "center", "y": "bottom" },
+  "colors": {
+    "keyBackground": "#2d2d2d",
+    "keyText": "#ffffff",
+    "keyBorder": "#444444",
+    "keyPressed": "#3B82F6",
+    "keyPressedText": "#ffffff",
+    "background": "transparent"
+  },
+  "font": {
+    "family": "Inter, sans-serif",
+    "size": 12
+  },
+  "animation": {
+    "type": "fade",
+    "duration": 100
+  },
+  "customCSS": "",
+  "perKeyColors": {}
+}
+8. Technical Spec
+File Structure
+keyoverlay/
+├── index.html          # Entry point, overlay + editor UI
+├── css/
+│   ├── base.css        # Reset, CSS variables, base styles
+│   ├── keyboard.css    # Key layout & rendering
+│   ├── themes.css      # Preset theme definitions
+│   └── editor.css      # Editor panel styles
+├── js/
+│   ├── main.js         # Init, mode detection (overlay vs editor)
+│   ├── keyboard.js     # Render keyboard dari layout JSON
+│   ├── keypress.js     # Keydown/keyup event handler
+│   ├── config.js       # Load/save config ke localStorage
+│   ├── editor.js       # Editor panel logic
+│   └── export.js       # Export/import JSON
+└── layouts/
+    ├── full.json        # Full QWERTY 104-key layout
+    ├── tkl.json         # Tenkeyless 87-key layout
+    ├── 60.json          # 60% layout
+    └── numpad.json      # Numpad only
+Layout JSON Format
+{
+  "name": "Full QWERTY",
+  "rows": [
+    {
+      "keys": [
+        { "code": "Escape", "label": "Esc", "width": 1 },
+        { "code": "F1", "label": "F1", "width": 1 },
+        ...
+      ]
+    },
+    ...
+  ]
+}
+9. Constraints & Assumptions
+OBS Browser Source menggunakan Chromium — semua fitur harus kompatibel dengan Chrome/Chromium terbaru.
+Keyboard events HANYA terdeteksi jika Browser Source dalam kondisi fokus di OBS, atau user menggunakan OBS interaction mode.
+Zero dependency eksternal — tidak ada npm, tidak ada CDN runtime (kecuali font dari Google Fonts opsional).
+Total ukuran file harus di bawah 500KB untuk load time cepat.
+Tidak ada server — semua logic berjalan di browser.
+10. Milestones
+Fitur
+Deskripsi
+Prioritas
+M1 — Skeleton
+Struktur file, layout JSON, render keyboard dasar ke HTML/CSS.
+P0
+M2 — Keypress
+Keydown/keyup detection, highlight state, CSS transition.
+P0
+M3 — Theming
+CSS variables, 5 preset themes, transparent bg.
+P0
+M4 — Config
+localStorage save/load, basic editor UI.
+P0
+M5 — Export/Import
+JSON export/import, custom CSS injector.
+P1
+M6 — Polish
+Animasi options, scale/position control, 'Copy OBS URL' button.
+P1
+M7 — Advanced
+Per-key color, custom layout builder, KPS counter.
+P2
+11. Out of Scope
+Global keylogging di luar browser window — ini limitasi browser, bukan bug.
+Support macOS media keys atau special keys OS-level.
+Fitur multiplayer / sharing real-time.
+Recording atau replay keypress history.
+Mobile / tablet support.

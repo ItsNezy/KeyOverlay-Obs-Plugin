@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KeyOverlay</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/keyboard.css">
+    <link rel="stylesheet" href="css/editor.css">
+</head>
+<body data-theme="dark">
+    <div id="overlay-container" class="pos-bottom pos-center-x">
+        <div id="keyboard-wrapper">
+        </div>
+    </div>
+
+    <div id="editor-container" class="hidden">
+        <div class="editor-panel">
+            <h2>KeyOverlay Editor</h2>
+
+            <div class="editor-section">
+                <h3>Theme</h3>
+                <select id="theme-select">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                    <option value="gaming">Gaming Red</option>
+                    <option value="pastel">Pastel</option>
+                    <option value="monochrome">Monochrome</option>
+                </select>
+            </div>
+
+            <div class="editor-section">
+                <h3>Layout</h3>
+                <select id="layout-select">
+                    <option value="full">Full (104-key)</option>
+                    <option value="tkl">TKL (87-key)</option>
+                    <option value="75">75%</option>
+                    <option value="65">65%</option>
+                    <option value="60">60%</option>
+                    <option value="numpad">Numpad</option>
+                </select>
+            </div>
+
+            <div class="editor-section">
+                <h3>Scale</h3>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="range" id="scale-slider" min="0.5" max="2" step="0.1" value="1">
+                    <span id="scale-value">1.0x</span>
+                </div>
+            </div>
+
+            <div class="editor-section">
+                <h3>Position</h3>
+                <div class="position-controls">
+                    <select id="pos-y">
+                        <option value="top">Top</option>
+                        <option value="center-y">Center</option>
+                        <option value="bottom">Bottom</option>
+                    </select>
+                    <select id="pos-x">
+                        <option value="left">Left</option>
+                        <option value="center-x">Center</option>
+                        <option value="right">Right</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="editor-section">
+                <h3>Custom Colors</h3>
+                <label>Bg (OBS View) <input type="color" id="color-bg"></label>
+                <label>Key Base <input type="color" id="color-key-bg"></label>
+                <label>Key Text <input type="color" id="color-text"></label>
+                <label>Key Active <input type="color" id="color-active"></label>
+            </div>
+
+            <div id="key-editor-panel" class="hidden editor-section">
+                <h3>Key Editor <span style="font-size:0.7rem;color:#888">(click a key to edit)</span></h3>
+                <div id="ke-info" style="font-size: 0.85rem; margin-bottom: 8px; color: #ccc;">Selected key</div>
+
+                <div class="ke-debug-panel">
+                    <div class="ke-debug-grid">
+                        <div><span class="ke-debug-label">Row</span><span id="ke-debug-row">-</span></div>
+                        <div><span class="ke-debug-label">Index</span><span id="ke-debug-index">-</span></div>
+                        <div><span class="ke-debug-label">X</span><span id="ke-debug-x">-</span></div>
+                        <div><span class="ke-debug-label">Y</span><span id="ke-debug-y">-</span></div>
+                    </div>
+                </div>
+
+                <label>Width (units)</label>
+                <div class="ke-controls">
+                    <button id="ke-width-minus" class="ke-btn">-0.25</button>
+                    <input type="number" id="ke-width" step="0.25" min="0" value="1" class="ke-input">
+                    <button id="ke-width-plus" class="ke-btn">+0.25</button>
+                </div>
+                <div id="ke-width-display" style="text-align:center;font-size:0.8rem;color:#888;margin-top:2px;">1.00u</div>
+
+                <div id="ke-label-row" style="margin-top: 8px;">
+                    <label>Label</label>
+                    <input type="text" id="ke-label" class="ke-input" style="width:100%" placeholder="Key label">
+                </div>
+
+                <div style="margin-top: 8px;">
+                    <label>Code</label>
+                    <input type="text" id="ke-code" class="ke-input" style="width:100%" placeholder="event.code / key id">
+                </div>
+
+                <div style="margin-top: 8px;">
+                    <label>Position</label>
+                    <div class="ke-controls">
+                        <input type="number" id="ke-target-row" min="1" step="1" class="ke-input" placeholder="Row">
+                        <input type="number" id="ke-target-index" min="1" step="1" class="ke-input" placeholder="Index">
+                        <button id="ke-apply-position" class="ke-btn">Move</button>
+                    </div>
+                </div>
+
+                <div class="ke-move-grid">
+                    <button id="ke-move-up" class="ke-btn-sm">Move Up</button>
+                    <button id="ke-move-left" class="ke-btn-sm">Move Left</button>
+                    <button id="ke-move-right" class="ke-btn-sm">Move Right</button>
+                    <button id="ke-move-down" class="ke-btn-sm">Move Down</button>
+                </div>
+
+                <div class="ke-actions">
+                    <button id="ke-add-spacer" class="ke-btn-sm">+ Spacer Before</button>
+                    <button id="ke-delete" class="ke-btn-sm ke-danger">Delete</button>
+                    <button id="ke-reset" class="ke-btn-sm ke-warn">Reset Layout</button>
+                </div>
+                <p style="font-size:0.7rem;color:#666;margin-top:6px;">Tip: Shift + Arrow Left/Right untuk width, Arrow biasa untuk pindah key, Esc untuk deselect.</p>
+            </div>
+
+            <div class="editor-actions">
+                <button id="btn-preview">Preview Overlay</button>
+                <button id="btn-export">Export JSON</button>
+                <button id="btn-import" onclick="document.getElementById('file-import').click()">Import JSON</button>
+                <input type="file" id="file-import" class="hidden" accept=".json">
+                <button id="btn-copy-url">Copy OBS URL</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/layouts.js"></script>
+    <script src="js/keyboard.js"></script>
+    <script src="js/keypress.js"></script>
+    <script src="js/keyeditor.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/editor.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

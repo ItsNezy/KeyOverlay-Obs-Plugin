@@ -1,0 +1,106 @@
+#overlay-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    position: relative;
+    pointer-events: none;
+}
+
+/* When editor is open, shrink overlay to make room for sidebar */
+body.editor-mode #overlay-container {
+    width: calc(100vw - 320px);
+}
+
+/* Positioning */
+#overlay-container.pos-top { align-items: flex-start; }
+#overlay-container.pos-center-y { align-items: center; }
+#overlay-container.pos-bottom { align-items: flex-end; }
+#overlay-container.pos-left { justify-content: flex-start; }
+#overlay-container.pos-center-x { justify-content: center; }
+#overlay-container.pos-right { justify-content: flex-end; }
+
+#keyboard-wrapper {
+    padding: 20px;
+    transform: scale(var(--scale));
+    transform-origin: center bottom;
+}
+
+.keyboard-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    border-radius: 12px;
+}
+
+.key-row {
+    display: flex;
+    gap: 4px;
+}
+
+.key {
+    background-color: var(--key-bg);
+    color: var(--key-text);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    user-select: none;
+    transition: background-color var(--anim-duration) ease,
+                color var(--anim-duration) ease,
+                transform 60ms ease,
+                box-shadow 60ms ease;
+    box-shadow: 0 3px 0 var(--key-border), 0 4px 8px rgba(0,0,0,0.3);
+    position: relative;
+    will-change: background-color, box-shadow;
+}
+
+.key.active {
+    background-color: var(--key-active);
+    color: var(--key-active-text);
+    transform: none;
+    box-shadow:
+        0 3px 0 var(--key-border),
+        0 4px 8px rgba(0,0,0,0.3),
+        inset 0 0 0 1px rgba(255,255,255,0.08),
+        inset 0 2px 8px rgba(0,0,0,0.28),
+        0 0 10px var(--key-active);
+}
+
+.key-spacer {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    height: 48px;
+}
+
+/* Editor mode overrides */
+.editor-spacer {
+    border: 1px dashed rgba(255,255,255,0.2) !important;
+    border-radius: 6px;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: background 0.2s;
+}
+
+.editor-spacer:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.key.selected, .editor-spacer.selected {
+    box-shadow: 0 0 0 2px #8B5CF6, 0 0 10px rgba(139, 92, 246, 0.5) !important;
+    z-index: 20;
+}
+
+.key.dragging, .editor-spacer.dragging {
+    opacity: 0.45;
+}
+
+.key.drop-target, .editor-spacer.drop-target {
+    box-shadow: 0 0 0 2px #22C55E, 0 0 10px rgba(34, 197, 94, 0.5) !important;
+}

@@ -1,0 +1,41 @@
+/* Themes Definition */
+body[data-theme="dark"] {
+    --key-bg: #2d2d2d;
+    --key-text: #ffffff;
+    --key-border: #1a1a1a;
+    --key-active: #3B82F6;
+    --key-active-text: #ffffff;
+}
+
+body[data-theme="light"] {
+    --key-bg: #ffffff;
+    --key-text: #333333;
+    --key-border: #e0e0e0;
+    --key-active: #3B82F6;
+    --key-active-text: #ffffff;
+}
+
+body[data-theme="gaming"] {
+    --key-bg: #111111;
+    --key-text: #ff0000;
+    --key-border: #330000;
+    --key-active: #ff0000;
+    --key-active-text: #ffffff;
+    --anim-duration: 50ms;
+}
+
+body[data-theme="pastel"] {
+    --key-bg: #fdf6e3;
+    --key-text: #657b83;
+    --key-border: #eee8d5;
+    --key-active: #ffb6c1;
+    --key-active-text: #ffffff;
+}
+
+body[data-theme="monochrome"] {
+    --key-bg: #000000;
+    --key-text: #ffffff;
+    --key-border: #ffffff;
+    --key-active: #ffffff;
+    --key-active-text: #000000;
+}
