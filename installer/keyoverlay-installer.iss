@@ -20,7 +20,7 @@ Source: "files\obs-plugins\64bit\keyoverlay.dll"; DestDir: "{app}\obs-plugins\64
 Source: "files\data\obs-plugins\keyoverlay\*"; DestDir: "{app}\data\obs-plugins\keyoverlay"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [UninstallDelete]
-Type: filesandsubdirs; Name: "{app}\data\obs-plugins\keyoverlay"
+Type: filesandordirs; Name: "{app}\data\obs-plugins\keyoverlay"
 
 [Code]
 function GetOBSInstallPath(): string;

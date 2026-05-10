@@ -67,6 +67,8 @@ void KeyOverlayPlugin::shutdown() {
         httpServer_.reset();
     }
     if (dockPanel_) {
-        dockPanel_.reset();
+        // OBS owns the dock widget after obs_frontend_add_dock_by_id,
+        // so we must NOT delete it — just release our pointer.
+        dockPanel_.release();
     }
 }
