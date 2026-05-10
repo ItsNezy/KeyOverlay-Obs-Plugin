@@ -107,6 +107,40 @@ jobs:
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
 
+      - name: Stage Installer Files
+        run: |
+          $config = '${{ needs.check-event.outputs.config }}'
+          $releaseDir = "release/${config}"
+
+          # Create staging directory structure
+          New-Item -ItemType Directory -Force -Path "installer/files/obs-plugins/64bit"
+          New-Item -ItemType Directory -Force -Path "installer/files/data/obs-plugins/keyoverlay"
+
+          # Find and copy the DLL
+          $dll = Get-ChildItem -Path $releaseDir -Recurse -Filter "keyoverlay.dll" | Select-Object -First 1
+          if ($dll) {
+            Copy-Item $dll.FullName "installer/files/obs-plugins/64bit/keyoverlay.dll"
+            Write-Host "DLL found at: $($dll.FullName)"
+          } else {
+            Write-Error "keyoverlay.dll not found in $releaseDir"
+            exit 1
+          }
+
+          # Find and copy the data directory
+          $dataDir = Get-ChildItem -Path $releaseDir -Recurse -Directory -Filter "data" | Select-Object -First 1
+          if ($dataDir) {
+            Copy-Item -Path "$($dataDir.FullName)/*" -Destination "installer/files/data/obs-plugins/keyoverlay" -Recurse -Force
+            Write-Host "Data found at: $($dataDir.FullName)"
+          } else {
+            # Fallback: copy from source data/
+            Copy-Item -Path "data/*" -Destination "installer/files/data/obs-plugins/keyoverlay" -Recurse -Force
+            Write-Host "Using source data/ directory as fallback"
+          }
+
+          # Show what we staged
+          Write-Host "=== Staged files ==="
+          Get-ChildItem -Path "installer/files" -Recurse | Select-Object FullName
+
       - name: Compile Installer
         run: |
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer/keyoverlay-installer.iss

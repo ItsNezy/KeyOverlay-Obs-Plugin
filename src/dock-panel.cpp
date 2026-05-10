@@ -12,6 +12,9 @@
 #include <obs-module.h>
 #include <util/config-file.h>
 
+// OBS 31.x deprecated obs_frontend_get_global_config in favor of profile config
+#pragma warning(disable: 4996)
+
 DockPanel::DockPanel(WsServer* wsServer, QWidget* parent) : QDockWidget(parent), wsServer_(wsServer) {
     setObjectName("KeyOverlayDock");
     setWindowTitle("KeyOverlay Settings");

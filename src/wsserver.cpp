@@ -141,7 +141,8 @@ void WsServer::serverLoop(int port) {
     sockaddr_in addr = {};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    addr.sin_addr.s_addr = INADDR_LOOPBACK;
+    inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
 
     if (bind(listenSocket_, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
         blog(LOG_ERROR, "[KeyOverlay] Failed to bind to port %d", port);

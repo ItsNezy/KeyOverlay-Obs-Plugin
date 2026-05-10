@@ -30,18 +30,12 @@ if(ENABLE_QT)
   )
 endif()
 
-# uWebSockets — header-only library + compiled uSockets
-if(DEFINED UWS_INCLUDE_DIR)
-  target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE "${UWS_INCLUDE_DIR}")
-endif()
-if(DEFINED USOCKETS_LIB)
-  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "${USOCKETS_LIB}")
-endif()
+
 
 # Windows-specific
 if(WIN32)
   add_definitions(-DNOMINMAX -DWIN32_LEAN_AND_MEAN)
-  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ws2_32 user32)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ws2_32 user32 crypt32 advapi32)
 endif()
 
 target_sources(
@@ -55,11 +49,30 @@ target_sources(
     src/dock-panel.cpp
 )
 
-# Copy web UI to data/ui during build
-file(GLOB_RECURSE WEB_FILES "${CMAKE_CURRENT_SOURCE_DIR}/web/*")
-foreach(WEB_FILE ${WEB_FILES})
-  file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/web" "${WEB_FILE}")
-  configure_file("${WEB_FILE}" "${CMAKE_CURRENT_SOURCE_DIR}/data/ui/${REL_PATH}" COPYONLY)
+# Copy web UI to data/ui during CMake configure
+# This ensures data/ui/ has the web files before install/package steps
+file(GLOB_RECURSE WEB_UI_FILES
+  "${CMAKE_CURRENT_SOURCE_DIR}/web/*.html"
+  "${CMAKE_CURRENT_SOURCE_DIR}/web/*.css"
+  "${CMAKE_CURRENT_SOURCE_DIR}/web/*.js"
+  "${CMAKE_CURRENT_SOURCE_DIR}/web/*.json"
+  "${CMAKE_CURRENT_SOURCE_DIR}/web/*.png"
+  "${CMAKE_CURRENT_SOURCE_DIR}/web/*.jpg"
+  "${CMAKE_CURRENT_SOURCE_DIR}/web/*.svg"
+  "${CMAKE_CURRENT_SOURCE_DIR}/web/*.woff2"
+)
+foreach(_file ${WEB_UI_FILES})
+  file(RELATIVE_PATH _rel "${CMAKE_CURRENT_SOURCE_DIR}/web" "${_file}")
+  configure_file("${_file}" "${CMAKE_CURRENT_SOURCE_DIR}/data/ui/${_rel}" COPYONLY)
 endforeach()
+
+# Also copy at build time so changes are picked up
+add_custom_target(copy_web_ui ALL
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/web"
+    "${CMAKE_CURRENT_SOURCE_DIR}/data/ui"
+  COMMENT "Copying web UI to data/ui/"
+)
+add_dependencies(${CMAKE_PROJECT_NAME} copy_web_ui)
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})

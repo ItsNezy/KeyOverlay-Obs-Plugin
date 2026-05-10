@@ -1,5 +1,13 @@
 #include "keyoverlay-plugin.hpp"
 #include <obs-module.h>
+#include <obs-frontend-api.h>
+
+static void on_frontend_event(enum obs_frontend_event event, void* data) {
+    if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING) {
+        auto* plugin = static_cast<KeyOverlayPlugin*>(data);
+        plugin->initDock();
+    }
+}
 
 KeyOverlayPlugin& KeyOverlayPlugin::getInstance() {
     static KeyOverlayPlugin instance;
@@ -29,13 +37,23 @@ bool KeyOverlayPlugin::init() {
         blog(LOG_ERROR, "[KeyOverlay] Failed to start HTTP server");
     }
 
-    dockPanel_ = std::make_unique<DockPanel>(wsServer_.get());
-    dockPanel_->init();
+    // Defer dock creation until OBS UI is fully loaded
+    obs_frontend_add_event_callback(on_frontend_event, this);
 
     return true;
 }
 
+void KeyOverlayPlugin::initDock() {
+    if (dockPanel_) return; // already initialized
+    
+    dockPanel_ = std::make_unique<DockPanel>(wsServer_.get());
+    dockPanel_->init();
+    blog(LOG_INFO, "[KeyOverlay] Dock panel created");
+}
+
 void KeyOverlayPlugin::shutdown() {
+    obs_frontend_remove_event_callback(on_frontend_event, this);
+
     if (keyHook_) {
         keyHook_->stop();
         keyHook_.reset();

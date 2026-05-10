@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KeyOverlay</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <meta name="description" content="A customizable keyboard overlay for OBS Studio with real-time key visualization.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/themes.css">
     <link rel="stylesheet" href="css/keyboard.css">
@@ -18,7 +19,16 @@
 
     <div id="editor-container" class="hidden">
         <div class="editor-panel">
-            <h2>KeyOverlay Editor</h2>
+            <h2>⌨ KeyOverlay Editor</h2>
+
+            <!-- Update Banner -->
+            <div id="update-banner" class="update-banner"></div>
+
+            <!-- WebSocket Connection Status -->
+            <div class="ws-status">
+                <span class="ws-dot" id="ws-dot"></span>
+                <span id="ws-status-text">Disconnected</span>
+            </div>
 
             <div class="editor-section">
                 <h3>Theme</h3>
@@ -26,7 +36,10 @@
                     <option value="dark">Dark</option>
                     <option value="light">Light</option>
                     <option value="gaming">Gaming Red</option>
+                    <option value="cyberpunk">Cyberpunk</option>
+                    <option value="ocean">Ocean</option>
                     <option value="pastel">Pastel</option>
+                    <option value="minimal">Minimal</option>
                     <option value="monochrome">Monochrome</option>
                 </select>
             </div>
@@ -47,7 +60,7 @@
                 <h3>Scale</h3>
                 <div style="display: flex; gap: 8px; align-items: center;">
                     <input type="range" id="scale-slider" min="0.5" max="2" step="0.1" value="1">
-                    <span id="scale-value">1.0x</span>
+                    <span id="scale-value" style="font-size:0.85rem;color:#a1a1aa;min-width:36px;text-align:right;">1.0x</span>
                 </div>
             </div>
 
@@ -76,8 +89,8 @@
             </div>
 
             <div id="key-editor-panel" class="hidden editor-section">
-                <h3>Key Editor <span style="font-size:0.7rem;color:#888">(click a key to edit)</span></h3>
-                <div id="ke-info" style="font-size: 0.85rem; margin-bottom: 8px; color: #ccc;">Selected key</div>
+                <h3>Key Editor <span style="font-size:0.7rem;color:#71717a">(click a key to edit)</span></h3>
+                <div id="ke-info" style="font-size: 0.85rem; margin-bottom: 8px; color: #a1a1aa;">Selected key</div>
 
                 <div class="ke-debug-panel">
                     <div class="ke-debug-grid">
@@ -94,7 +107,7 @@
                     <input type="number" id="ke-width" step="0.25" min="0" value="1" class="ke-input">
                     <button id="ke-width-plus" class="ke-btn">+0.25</button>
                 </div>
-                <div id="ke-width-display" style="text-align:center;font-size:0.8rem;color:#888;margin-top:2px;">1.00u</div>
+                <div id="ke-width-display" style="text-align:center;font-size:0.8rem;color:#71717a;margin-top:2px;">1.00u</div>
 
                 <div id="ke-label-row" style="margin-top: 8px;">
                     <label>Label</label>
@@ -127,16 +140,32 @@
                     <button id="ke-delete" class="ke-btn-sm ke-danger">Delete</button>
                     <button id="ke-reset" class="ke-btn-sm ke-warn">Reset Layout</button>
                 </div>
-                <p style="font-size:0.7rem;color:#666;margin-top:6px;">Tip: Shift + Arrow Left/Right untuk width, Arrow biasa untuk pindah key, Esc untuk deselect.</p>
+                <p style="font-size:0.7rem;color:#52525b;margin-top:6px;">Tip: Shift + Arrow Left/Right untuk width, Arrow biasa untuk pindah key, Esc untuk deselect.</p>
             </div>
 
             <div class="editor-actions">
-                <button id="btn-preview">Preview Overlay</button>
-                <button id="btn-export">Export JSON</button>
-                <button id="btn-import" onclick="document.getElementById('file-import').click()">Import JSON</button>
+                <button id="btn-preview">👁 Preview Overlay</button>
+                <button id="btn-export">📦 Export JSON</button>
+                <button id="btn-import" onclick="document.getElementById('file-import').click()">📂 Import JSON</button>
                 <input type="file" id="file-import" class="hidden" accept=".json">
-                <button id="btn-copy-url">Copy OBS URL</button>
+                <button id="btn-copy-url">📋 Copy OBS URL</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Copy URL Instruction Modal -->
+    <div id="copy-modal" class="copy-modal-overlay">
+        <div class="copy-modal">
+            <h3>✅ URL Copied!</h3>
+            <p>Now set up the overlay in OBS:</p>
+            <ol>
+                <li>In OBS, click <strong>+</strong> under Sources</li>
+                <li>Select <strong>Browser</strong></li>
+                <li><strong>Paste</strong> the copied URL</li>
+                <li>Set Width: <strong>1200</strong>, Height: <strong>400</strong></li>
+                <li>Check <strong>"Refresh browser when scene becomes active"</strong></li>
+            </ol>
+            <button id="copy-modal-close">Got it!</button>
         </div>
     </div>
 
@@ -147,6 +176,7 @@
     <script src="js/keyeditor.js"></script>
     <script src="js/export.js"></script>
     <script src="js/editor.js"></script>
+    <script src="js/updater.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

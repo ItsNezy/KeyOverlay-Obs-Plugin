@@ -1,41 +1,95 @@
-/* Themes Definition */
+/* ═══════════════════════════════════════════════════════
+   KeyOverlay — Theme Definitions
+   Each theme sets CSS custom properties consumed by
+   keyboard.css.  Add new themes by copying a block and
+   changing the values.
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Dark (default) ────────────────────────────────── */
 body[data-theme="dark"] {
-    --key-bg: #2d2d2d;
-    --key-text: #ffffff;
-    --key-border: #1a1a1a;
+    --key-bg: #2a2a2f;
+    --key-text: #e4e4e7;
+    --key-border: #18181b;
     --key-active: #3B82F6;
     --key-active-text: #ffffff;
+    --key-glow: rgba(59, 130, 246, 0.45);
+    --kb-bg: rgba(20, 20, 24, 0.65);
 }
 
+/* ── Light ─────────────────────────────────────────── */
 body[data-theme="light"] {
     --key-bg: #ffffff;
-    --key-text: #333333;
-    --key-border: #e0e0e0;
+    --key-text: #1f2937;
+    --key-border: #d1d5db;
     --key-active: #3B82F6;
     --key-active-text: #ffffff;
+    --key-glow: rgba(59, 130, 246, 0.35);
+    --kb-bg: rgba(243, 244, 246, 0.7);
 }
 
+/* ── Gaming Red ────────────────────────────────────── */
 body[data-theme="gaming"] {
-    --key-bg: #111111;
-    --key-text: #ff0000;
-    --key-border: #330000;
-    --key-active: #ff0000;
+    --key-bg: #0f0f0f;
+    --key-text: #ef4444;
+    --key-border: #2a0a0a;
+    --key-active: #ef4444;
     --key-active-text: #ffffff;
+    --key-glow: rgba(239, 68, 68, 0.6);
+    --kb-bg: rgba(10, 2, 2, 0.7);
     --anim-duration: 50ms;
 }
 
+/* ── Pastel ────────────────────────────────────────── */
 body[data-theme="pastel"] {
     --key-bg: #fdf6e3;
     --key-text: #657b83;
     --key-border: #eee8d5;
-    --key-active: #ffb6c1;
+    --key-active: #f9a8d4;
     --key-active-text: #ffffff;
+    --key-glow: rgba(249, 168, 212, 0.5);
+    --kb-bg: rgba(253, 246, 227, 0.6);
 }
 
+/* ── Monochrome ────────────────────────────────────── */
 body[data-theme="monochrome"] {
     --key-bg: #000000;
     --key-text: #ffffff;
-    --key-border: #ffffff;
+    --key-border: #333333;
     --key-active: #ffffff;
     --key-active-text: #000000;
+    --key-glow: rgba(255, 255, 255, 0.4);
+    --kb-bg: rgba(0, 0, 0, 0.6);
+}
+
+/* ── Cyberpunk  ★ NEW ──────────────────────────────── */
+body[data-theme="cyberpunk"] {
+    --key-bg: #0c0c1e;
+    --key-text: #00f0ff;
+    --key-border: #1a0a3a;
+    --key-active: #ff2d95;
+    --key-active-text: #ffffff;
+    --key-glow: rgba(255, 45, 149, 0.65);
+    --kb-bg: rgba(12, 12, 30, 0.75);
+}
+
+/* ── Minimal  ★ NEW ────────────────────────────────── */
+body[data-theme="minimal"] {
+    --key-bg: #f8f8f8;
+    --key-text: #555555;
+    --key-border: #e8e8e8;
+    --key-active: #111111;
+    --key-active-text: #ffffff;
+    --key-glow: rgba(0, 0, 0, 0.15);
+    --kb-bg: rgba(255, 255, 255, 0.5);
+}
+
+/* ── Ocean  ★ NEW ──────────────────────────────────── */
+body[data-theme="ocean"] {
+    --key-bg: #0f2b3d;
+    --key-text: #7dd3fc;
+    --key-border: #0a1929;
+    --key-active: #38bdf8;
+    --key-active-text: #0c1a2a;
+    --key-glow: rgba(56, 189, 248, 0.5);
+    --kb-bg: rgba(10, 25, 41, 0.7);
 }

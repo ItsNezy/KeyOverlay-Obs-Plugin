@@ -1,0 +1,25 @@
+# Build outputs
+build_*/
+release/
+.deps/
+
+# CMake
+CMakeUserPresets.json
+cmake/.CMakeBuildNumber
+
+# Installer staging
+installer/files/
+installer/Output/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Data generated from web/
+data/ui/

@@ -2,6 +2,7 @@ const Editor = {
     init() {
         this.populateValues();
         this.bindEvents();
+        this.initCopyModal();
     },
 
     buildShareUrl() {
@@ -82,16 +83,47 @@ const Editor = {
             const shareUrl = this.buildShareUrl();
 
             navigator.clipboard.writeText(shareUrl).then(() => {
-                const btn = document.getElementById('btn-copy-url');
-                const oldText = btn.innerText;
-                btn.innerText = 'Copied!';
-                setTimeout(() => {
-                    btn.innerText = oldText;
-                }, 2000);
+                this.showCopyModal();
             }).catch(() => {
                 prompt('Copy this URL:', shareUrl);
             });
         });
+    },
+
+    /* ── Copy URL Instruction Modal ──────────────── */
+    initCopyModal() {
+        const overlay = document.getElementById('copy-modal');
+        const closeBtn = document.getElementById('copy-modal-close');
+        if (!overlay || !closeBtn) return;
+
+        closeBtn.addEventListener('click', () => {
+            overlay.classList.remove('visible');
+        });
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.classList.remove('visible');
+        });
+    },
+
+    showCopyModal() {
+        const overlay = document.getElementById('copy-modal');
+        if (overlay) overlay.classList.add('visible');
+    },
+
+    /* ── WebSocket Connection Status ─────────────── */
+    updateWsStatus(connected) {
+        const dot = document.getElementById('ws-dot');
+        const text = document.getElementById('ws-status-text');
+        if (!dot || !text) return;
+
+        if (connected) {
+            dot.classList.add('connected');
+            text.textContent = 'Connected to OBS';
+            text.style.color = '#86efac';
+        } else {
+            dot.classList.remove('connected');
+            text.textContent = 'Disconnected';
+            text.style.color = '#71717a';
+        }
     },
 
     toHex(val) {

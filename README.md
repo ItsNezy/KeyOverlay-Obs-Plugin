@@ -1,46 +1,122 @@
-# KeyOverlay
+<div align="center">
 
-Global keyboard overlay for OBS.
-Captures keypresses from anywhere on Windows and displays them on a browser source overlay inside OBS via a built-in WebSocket server.
+# ⌨ KeyOverlay
 
-## Build Requirements
+**A lightweight, native OBS plugin that displays a real-time keyboard overlay on your stream.**
 
-- OBS Studio 30.x SDK
-- CMake 3.20+
-- Visual Studio 2022 with C++ workload
-- Qt 6.x (same version OBS uses)
-- uWebSockets v20
-- Inno Setup 6 (for installer)
+Built with C++ and raw Winsock2 — zero external dependencies, maximum performance.
 
-## Build Steps
+[![Build](https://img.shields.io/github/actions/workflow/status/Rubim1/KeyOverlay-Obs-Plugin/build.yml?style=flat-square&logo=github)](https://github.com/Rubim1/KeyOverlay-Obs-Plugin/actions)
+[![Release](https://img.shields.io/github/v/release/Rubim1/KeyOverlay-Obs-Plugin?style=flat-square&color=8B5CF6)](https://github.com/Rubim1/KeyOverlay-Obs-Plugin/releases/latest)
+[![License](https://img.shields.io/github/license/Rubim1/KeyOverlay-Obs-Plugin?style=flat-square)](LICENSE)
 
-```bash
-cmake -B build -G "Visual Studio 17 2022" -A x64 \
-  -DCMAKE_PREFIX_PATH="path/to/obs-sdk;path/to/Qt6"
-cmake --build build --config Release
+<!-- Replace with actual demo GIF -->
+<!-- ![KeyOverlay Demo](docs/demo.gif) -->
+
+</div>
+
+---
+
+## ✨ Features
+
+- 🎮 **Global Key Capture** — Uses a low-level Windows keyboard hook to capture keystrokes from *any* application, including fullscreen games
+- ⚡ **Zero Dependencies** — No Node.js, no Python, no external libraries. Pure C++ with native Winsock2 networking
+- 🎨 **8 Built-in Themes** — Dark, Light, Gaming Red, Cyberpunk, Ocean, Pastel, Minimal, Monochrome
+- 🔧 **Visual Key Editor** — Click any key to resize, reposition, or relabel. Drag-and-drop support
+- 📐 **6 Keyboard Layouts** — Full (104-key), TKL (87-key), 75%, 65%, 60%, Numpad
+- 🌐 **Browser Source Integration** — Works as an OBS Browser Source with a single URL
+- 🔄 **Auto Update Checker** — Get notified when a new version is available
+- 💎 **Glassmorphism Effects** — Premium frosted-glass backdrop with neon glow animations
+
+## 📥 Installation
+
+### Option 1: Installer (Recommended)
+1. Go to the [**Releases**](https://github.com/Rubim1/KeyOverlay-Obs-Plugin/releases/latest) page
+2. Download `keyoverlay-installer.exe`
+3. Run the installer — it will auto-detect your OBS installation
+4. Restart OBS Studio
+
+### Option 2: Manual
+1. Download the `.zip` from [Releases](https://github.com/Rubim1/KeyOverlay-Obs-Plugin/releases/latest)
+2. Extract `keyoverlay.dll` → `C:\Program Files\obs-studio\obs-plugins\64bit\`
+3. Extract `data\` folder → `C:\Program Files\obs-studio\data\obs-plugins\keyoverlay\`
+4. Restart OBS Studio
+
+## 🚀 Usage
+
+### 1. Open the Editor
+After installing, open your browser and go to:
+```
+http://127.0.0.1:9000
+```
+This is the visual editor where you can customize your overlay.
+
+### 2. Customize
+- Choose a **theme** and **layout**
+- Adjust the **scale** and **position**
+- Click individual keys to edit their width, label, or position
+- Use custom colors to match your stream aesthetic
+
+### 3. Add to OBS
+1. Click **📋 Copy OBS URL** in the editor
+2. In OBS, add a new **Browser** source
+3. **Paste** the copied URL
+4. Set Width: `1200`, Height: `400`
+5. Check **"Refresh browser when scene becomes active"**
+6. Done! Your keyboard overlay is live 🎉
+
+## 🏗 Architecture
+
+```
+┌─────────────────────────────────────────┐
+│  OBS Studio                             │
+│  ┌────────────────────────────────────┐ │
+│  │  keyoverlay.dll (C++ Plugin)       │ │
+│  │  ├─ KeyHook     (WH_KEYBOARD_LL)  │ │
+│  │  ├─ WsServer    (ws://9001)       │ │
+│  │  ├─ HttpServer  (http://9000)     │ │
+│  │  └─ DockPanel   (Qt Widgets)      │ │
+│  └────────────────────────────────────┘ │
+│                                         │
+│  ┌────────────────────────────────────┐ │
+│  │  Browser Source                    │ │
+│  │  └─ Connects to ws://127.0.0.1:9001│
+│  │     and renders keyboard overlay   │ │
+│  └────────────────────────────────────┘ │
+└─────────────────────────────────────────┘
 ```
 
-## Install for Development
+- **KeyHook** — Low-level Windows keyboard hook captures all keystrokes globally
+- **WsServer** — Raw RFC 6455 WebSocket server broadcasts key events to connected clients
+- **HttpServer** — Serves the web UI (editor + overlay) from the plugin's data directory
+- **DockPanel** — Qt-based settings panel integrated into OBS's dock system
 
-```bash
-cmake --install build --config Release
+## 🛠 Building from Source
+
+### Prerequisites
+- Windows 10/11
+- Visual Studio 2022
+- CMake 3.16+
+- OBS Studio 30.x+ source/deps
+
+### Build
+```powershell
+# Configure
+cmake --preset windows-x64
+
+# Build
+cmake --build build_x64 --config RelWithDebInfo --parallel
+
+# Deploy locally (run as admin)
+.\deploy-local.ps1
 ```
 
-## Build Installer
+## 📄 License
 
-Open `installer/keyoverlay-installer.iss` in Inno Setup, click Compile.
+This project is open source. See [LICENSE](LICENSE) for details.
 
-## How It Works (for developers)
+---
 
-1. Plugin loads → `KeyHook` installs `WH_KEYBOARD_LL` on separate thread
-2. User presses key → hook fires → `KeyHook` callback called
-3. Callback serializes event to JSON → `WsServer` broadcasts to all clients
-4. Browser Source (overlay) receives JSON via WebSocket → updates keyboard visual
-
-## User Setup Instructions
-
-1. Download and run `keyoverlay-installer.exe`
-2. Restart OBS
-3. In OBS, go to **Docks** menu → check **KeyOverlay** to show the settings panel
-4. Add a Browser Source to your scene, set URL to your overlay file
-5. Done — keys will now appear on your overlay while streaming
+<div align="center">
+Made with ❤ for streamers
+</div>

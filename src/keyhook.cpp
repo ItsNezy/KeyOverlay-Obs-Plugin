@@ -97,11 +97,11 @@ LRESULT CALLBACK KeyHook::LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM 
 std::string KeyHook::keyCodeToName(int vkCode) {
     // A-Z
     if (vkCode >= 0x41 && vkCode <= 0x5A) {
-        return std::string(1, (char)vkCode);
+        return "Key" + std::string(1, (char)vkCode);
     }
     // 0-9
     if (vkCode >= 0x30 && vkCode <= 0x39) {
-        return std::string(1, (char)vkCode);
+        return "Digit" + std::string(1, (char)vkCode);
     }
     // F1-F12
     if (vkCode >= 0x70 && vkCode <= 0x7B) {
@@ -120,8 +120,8 @@ std::string KeyHook::keyCodeToName(int vkCode) {
         case VK_ESCAPE: return "Escape";
         case VK_LSHIFT: return "ShiftLeft";
         case VK_RSHIFT: return "ShiftRight";
-        case VK_LCONTROL: return "CtrlLeft";
-        case VK_RCONTROL: return "CtrlRight";
+        case VK_LCONTROL: return "ControlLeft";
+        case VK_RCONTROL: return "ControlRight";
         case VK_LMENU: return "AltLeft";
         case VK_RMENU: return "AltRight";
         case VK_LWIN: return "MetaLeft";

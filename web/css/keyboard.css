@@ -1,3 +1,9 @@
+/* ═══════════════════════════════════════════════════════
+   KeyOverlay — Keyboard Renderer
+   Handles the overlay container, key grid, and all
+   press/release animations.
+   ═══════════════════════════════════════════════════════ */
+
 #overlay-container {
     width: 100vw;
     height: 100vh;
@@ -8,10 +14,10 @@
 
 /* When editor is open, shrink overlay to make room for sidebar */
 body.editor-mode #overlay-container {
-    width: calc(100vw - 320px);
+    width: calc(100vw - 340px);
 }
 
-/* Positioning */
+/* ── Positioning ─────────────────────────────────── */
 #overlay-container.pos-top { align-items: flex-start; }
 #overlay-container.pos-center-y { align-items: center; }
 #overlay-container.pos-bottom { align-items: flex-end; }
@@ -25,12 +31,17 @@ body.editor-mode #overlay-container {
     transform-origin: center bottom;
 }
 
+/* ── Keyboard container ──────────────────────────── */
 .keyboard-layout {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 8px;
-    border-radius: 12px;
+    padding: 10px;
+    border-radius: 14px;
+    background: var(--kb-bg, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .key-row {
@@ -38,11 +49,12 @@ body.editor-mode #overlay-container {
     gap: 4px;
 }
 
+/* ── Individual Key ──────────────────────────────── */
 .key {
     background-color: var(--key-bg);
     color: var(--key-text);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 7px;
     height: 48px;
     display: flex;
     align-items: center;
@@ -51,27 +63,52 @@ body.editor-mode #overlay-container {
     font-weight: 600;
     letter-spacing: 0.3px;
     user-select: none;
-    transition: background-color var(--anim-duration) ease,
-                color var(--anim-duration) ease,
-                transform 60ms ease,
-                box-shadow 60ms ease;
-    box-shadow: 0 3px 0 var(--key-border), 0 4px 8px rgba(0,0,0,0.3);
     position: relative;
-    will-change: background-color, box-shadow;
+    will-change: background-color, box-shadow, transform;
+
+    /* Smooth release transition */
+    transition:
+        background-color var(--anim-duration, 100ms) ease,
+        color var(--anim-duration, 100ms) ease,
+        transform 80ms cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 120ms ease;
+
+    /* 3-D keycap look */
+    box-shadow:
+        0 3px 0 var(--key-border),
+        0 4px 8px rgba(0, 0, 0, 0.25);
 }
 
+.key:hover {
+    filter: brightness(1.08);
+}
+
+/* ── Active / Pressed State ──────────────────────── */
 .key.active {
     background-color: var(--key-active);
     color: var(--key-active-text);
-    transform: none;
+
+    /* Push-down illusion */
+    transform: translateY(2px);
+
     box-shadow:
-        0 3px 0 var(--key-border),
-        0 4px 8px rgba(0,0,0,0.3),
-        inset 0 0 0 1px rgba(255,255,255,0.08),
-        inset 0 2px 8px rgba(0,0,0,0.28),
-        0 0 10px var(--key-active);
+        0 1px 0 var(--key-border),
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        /* inner depth */
+        inset 0 1px 4px rgba(0, 0, 0, 0.25),
+        /* neon glow ring */
+        0 0 12px var(--key-glow, rgba(59, 130, 246, 0.4)),
+        0 0 28px var(--key-glow, rgba(59, 130, 246, 0.15));
+
+    /* Snap-on, no delay */
+    transition:
+        background-color 30ms ease,
+        color 30ms ease,
+        transform 40ms ease,
+        box-shadow 40ms ease;
 }
 
+/* ── Spacer keys (layout gaps) ───────────────────── */
 .key-spacer {
     background: transparent;
     border: none;
@@ -79,9 +116,9 @@ body.editor-mode #overlay-container {
     height: 48px;
 }
 
-/* Editor mode overrides */
+/* ── Editor-mode overrides ───────────────────────── */
 .editor-spacer {
-    border: 1px dashed rgba(255,255,255,0.2) !important;
+    border: 1px dashed rgba(255, 255, 255, 0.2) !important;
     border-radius: 6px;
     cursor: pointer;
     pointer-events: auto;
@@ -89,7 +126,7 @@ body.editor-mode #overlay-container {
 }
 
 .editor-spacer:hover {
-    background: rgba(255,255,255,0.05);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .key.selected, .editor-spacer.selected {

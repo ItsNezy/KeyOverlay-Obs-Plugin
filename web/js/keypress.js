@@ -64,5 +64,47 @@ const Keypress = {
                 this.clearAllActiveKeys();
             }
         });
+
+        // Connect to OBS Plugin WebSocket server for global key events
+        this.connectWebSocket();
+    },
+
+    connectWebSocket() {
+        const wsUrl = 'ws://127.0.0.1:9001';
+        const ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+            console.log('[KeyOverlay] Connected to WebSocket server');
+            if (typeof Editor !== 'undefined' && Editor.updateWsStatus) {
+                Editor.updateWsStatus(true);
+            }
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                const code = data.key; // C++ backend sends the code in 'key' field
+
+                if (data.type === 'keydown') {
+                    this.highlight(code);
+                } else if (data.type === 'keyup') {
+                    this.release(code);
+                }
+            } catch (e) {
+                console.error('[KeyOverlay] Failed to parse message', e);
+            }
+        };
+
+        ws.onclose = () => {
+            console.log('[KeyOverlay] WebSocket disconnected. Reconnecting in 2s...');
+            if (typeof Editor !== 'undefined' && Editor.updateWsStatus) {
+                Editor.updateWsStatus(false);
+            }
+            setTimeout(() => this.connectWebSocket(), 2000);
+        };
+
+        ws.onerror = () => {
+            // Silently handle error, onclose will trigger reconnect
+        };
     }
 };

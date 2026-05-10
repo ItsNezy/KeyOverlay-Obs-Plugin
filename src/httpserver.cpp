@@ -62,7 +62,7 @@ void HttpServer::handleClient(SOCKET clientSock) {
     DWORD timeout = 2000;
     setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
 
-    char buf[4096];
+    char buf[16384];
     int len = recv(clientSock, buf, sizeof(buf) - 1, 0);
     if (len <= 0) {
         closesocket(clientSock);
@@ -89,6 +89,12 @@ void HttpServer::handleClient(SOCKET clientSock) {
         closesocket(clientSock);
         blog(LOG_INFO, "[KeyOverlay] HTTP client disconnected");
         return;
+    }
+    
+    // Strip query parameters
+    size_t qPos = path.find('?');
+    if (qPos != std::string::npos) {
+        path = path.substr(0, qPos);
     }
     
     if (path == "/") path = "/index.html";
@@ -152,7 +158,8 @@ void HttpServer::serverLoop(int port) {
     sockaddr_in addr = {};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    addr.sin_addr.s_addr = INADDR_LOOPBACK;
+    inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
 
     if (bind(listenSocket_, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
         blog(LOG_ERROR, "[KeyOverlay] HTTP Failed to bind to port %d", port);

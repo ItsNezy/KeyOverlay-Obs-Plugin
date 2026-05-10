@@ -11,6 +11,7 @@ public:
     static KeyOverlayPlugin& getInstance();
 
     bool init();
+    void initDock();
     void shutdown();
 
 private:

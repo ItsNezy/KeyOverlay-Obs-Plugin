@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Init Config (loads from localStorage/URL and renders keyboard)
     Config.load();
 
-    // Init Keypress listening
+    // Init Keypress listening (includes WebSocket connection)
     Keypress.init();
 
     if (isOverlay) {
@@ -18,5 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.add('editor-mode');
         Editor.init();
         KeyEditor.init();
+
+        // Check for updates (editor mode only)
+        Updater.init();
     }
 });
